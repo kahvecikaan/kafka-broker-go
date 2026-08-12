@@ -48,15 +48,15 @@ func handleConnection(conn net.Conn) {
 	apiVer := binary.BigEndian.Uint32(buff[6:7])
 	correlationId := binary.BigEndian.Uint32(buff[8:12])
 
-	// 8 byte response
+	// 10 byte response
 	response := make([]byte, 10)
 	binary.BigEndian.PutUint32(response[0:4], 0)
 	binary.BigEndian.PutUint32(response[4:8], correlationId)
 
-	if apiVer < 0 || apiVer > 4 {
-		binary.BigEndian.PutUint32(response[8:10], 35)
+	if apiVer > 4 {
+		binary.BigEndian.PutUint16(response[8:10], 35)
 	} else {
-		binary.BigEndian.PutUint32(response[8:10], 0)
+		binary.BigEndian.PutUint16(response[8:10], 0)
 	}
 
 	_, err = conn.Write(response)
