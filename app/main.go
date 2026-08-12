@@ -45,7 +45,7 @@ func handleConnection(conn net.Conn) {
 	// 4-5 [request_api_key - 2 bytes]
 	// 6-7 [request_api_version - 2 bytes]
 	// 8-11 [correlation_id - 4 bytes]
-	apiVer := binary.BigEndian.Uint16(buff[6:7])
+	apiVer := binary.BigEndian.Uint16(buff[6:8])
 	correlationId := binary.BigEndian.Uint32(buff[8:12])
 
 	// 10 byte response
