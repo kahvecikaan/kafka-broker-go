@@ -13,11 +13,9 @@ func main() {
 		fmt.Println("Failed to bind to port 9092")
 		os.Exit(1)
 	}
-	fmt.Println("Before l.Accept(), does it block here?")
 
 	for {
 		conn, err := l.Accept()
-		fmt.Println("After l.Accept()")
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
@@ -34,6 +32,7 @@ func handleConnection(conn net.Conn) {
 	n, err := conn.Read(buff)
 	if err != nil {
 		fmt.Println("Error reading from connection: ", err.Error())
+		return
 	}
 
 	if n < 12 {
