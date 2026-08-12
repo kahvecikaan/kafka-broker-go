@@ -9,6 +9,11 @@ import (
 	"github.com/kahvecikaan/kafka-broker-go/internal/kafka"
 )
 
+// maxRequestSize caps how large a single request may claim to be, so a client
+// can't force an unbounded allocation via the message_size field. Mirrors
+// Kafka's socket.request.max.bytes default (100 MiB).
+const maxRequestSize = 100 << 20
+
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
@@ -21,6 +26,9 @@ func handleConnection(conn net.Conn) {
 
 		// read exactly 'size' bytes - the header+body
 		size := binary.BigEndian.Uint32(sizeBuf)
+		if size > maxRequestSize {
+			return
+		}
 		msg := make([]byte, size)
 		if _, err := io.ReadFull(conn, msg); err != nil {
 			return
