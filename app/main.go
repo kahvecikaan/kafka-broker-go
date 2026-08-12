@@ -45,12 +45,19 @@ func handleConnection(conn net.Conn) {
 	// 4-5 [request_api_key - 2 bytes]
 	// 6-7 [request_api_version - 2 bytes]
 	// 8-11 [correlation_id - 4 bytes]
+	apiVer := binary.BigEndian.Uint32(buff[6:7])
 	correlationId := binary.BigEndian.Uint32(buff[8:12])
 
 	// 8 byte response
-	response := make([]byte, 8)
+	response := make([]byte, 10)
 	binary.BigEndian.PutUint32(response[0:4], 0)
 	binary.BigEndian.PutUint32(response[4:8], correlationId)
+
+	if apiVer < 0 || apiVer > 4 {
+		binary.BigEndian.PutUint32(response[8:10], 35)
+	} else {
+		binary.BigEndian.PutUint32(response[8:10], 0)
+	}
 
 	_, err = conn.Write(response)
 	if err != nil {
