@@ -20,6 +20,10 @@ func (e *Encoder) PutInt32(v int32) {
 	e.buf = binary.BigEndian.AppendUint32(e.buf, uint32(v))
 }
 
+func (e *Encoder) PutUvarint(v uint64) {
+	e.buf = binary.AppendUvarint(e.buf, v)
+}
+
 func (e *Encoder) Bytes() []byte {
 	return e.buf
 }
