@@ -9,12 +9,14 @@ func HandleRequest(msg []byte) []byte {
 
 	e := protocol.NewEncoder()
 	respHeader := NewResponseHeader(reqHeader)
-	respHeader.Encode(e)
 
 	switch reqHeader.APIKey {
 	case APIVersionsKey:
-		resp := HandleApiVersions(reqHeader)
-		resp.Encode(e)
+		respHeader.EncodeV0(e) // ApiVersions uses response header v0
+		HandleApiVersions(reqHeader).Encode(e)
+	case DescribeTopicPartitionsKey:
+		respHeader.EncodeV1(e) // DescribeTopicPartitions uses response header v1
+		HandleDescribeTopicPartitions(d).Encode(e)
 	}
 
 	return protocol.Frame(e.Bytes())
