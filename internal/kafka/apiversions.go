@@ -3,9 +3,10 @@ package kafka
 import "github.com/kahvecikaan/kafka-broker-go/internal/protocol"
 
 const (
-	APIVersionsKey        int16 = 18
-	errNone               int16 = 0
-	errUnsupportedVersion int16 = 35
+	APIVersionsKey             int16 = 18
+	DescribeTopicPartitionsKey int16 = 75
+	errNone                    int16 = 0
+	errUnsupportedVersion      int16 = 35
 )
 
 type ApiKeyEntry struct {
@@ -56,5 +57,6 @@ func HandleApiVersions(header RequestHeader) ApiVersionsResponse {
 func supportedApiKeys() []ApiKeyEntry {
 	return []ApiKeyEntry{
 		{APIKey: APIVersionsKey, MinVersion: 0, MaxVersion: 4},
+		{APIKey: DescribeTopicPartitionsKey, MinVersion: 0, MaxVersion: 0},
 	}
 }
