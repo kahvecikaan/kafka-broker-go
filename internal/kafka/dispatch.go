@@ -2,7 +2,7 @@ package kafka
 
 import "github.com/kahvecikaan/kafka-broker-go/internal/protocol"
 
-func HandleRequest(msg []byte) []byte {
+func HandleRequest(msg []byte) ([]byte, error) {
 	d := protocol.NewDecoder(msg)
 
 	reqHeader := ParseRequestHeader(d)
@@ -19,5 +19,9 @@ func HandleRequest(msg []byte) []byte {
 		HandleDescribeTopicPartitions(d).Encode(e)
 	}
 
-	return protocol.Frame(e.Bytes())
+	if err := d.Err(); err != nil {
+		return nil, err // malformed/truncated request: don't send partial garbage
+	}
+
+	return protocol.Frame(e.Bytes()), nil
 }

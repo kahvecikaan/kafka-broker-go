@@ -34,7 +34,11 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		out := kafka.HandleRequest(msg)
+		out, err := kafka.HandleRequest(msg)
+		if err != nil {
+			log.Println("malformed request, closing connection:", err)
+			return
+		}
 
 		if _, err := conn.Write(out); err != nil {
 			return
