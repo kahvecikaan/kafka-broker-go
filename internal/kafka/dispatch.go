@@ -2,7 +2,7 @@ package kafka
 
 import "github.com/kahvecikaan/kafka-broker-go/internal/protocol"
 
-func HandleRequest(msg []byte) ([]byte, error) {
+func (b *Broker) HandleRequest(msg []byte) ([]byte, error) {
 	d := protocol.NewDecoder(msg)
 
 	reqHeader := ParseRequestHeader(d)
@@ -16,7 +16,7 @@ func HandleRequest(msg []byte) ([]byte, error) {
 		HandleApiVersions(reqHeader).Encode(e)
 	case DescribeTopicPartitionsKey:
 		respHeader.EncodeV1(e) // DescribeTopicPartitions uses response header v1
-		HandleDescribeTopicPartitions(d).Encode(e)
+		HandleDescribeTopicPartitions(d, b.metadata).Encode(e)
 	}
 
 	if err := d.Err(); err != nil {

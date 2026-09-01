@@ -96,6 +96,72 @@ func (d *Decoder) ReadCompactString() string {
 	return s
 }
 
+func (d *Decoder) ReadInt8() int8 {
+	if d.err != nil {
+		return 0
+	}
+
+	if d.pos+1 > len(d.buf) {
+		d.err = io.ErrUnexpectedEOF
+		return 0
+	}
+
+	v := d.buf[d.pos]
+	d.pos++
+	return int8(v)
+}
+
+func (d *Decoder) ReadInt64() int64 {
+	if d.err != nil {
+		return 0
+	}
+
+	if d.pos+8 > len(d.buf) {
+		d.err = io.ErrUnexpectedEOF
+		return 0
+	}
+
+	v := binary.BigEndian.Uint64(d.buf[d.pos : d.pos+8])
+	d.pos += 8
+	return int64(v)
+}
+
+func (d *Decoder) ReadVarint() int64 {
+	if d.err != nil {
+		return 0
+	}
+
+	v, n := binary.Varint(d.buf[d.pos:])
+
+	if n <= 0 {
+		d.err = io.ErrUnexpectedEOF
+		return 0
+	}
+
+	d.pos += n
+	return v
+}
+
+func (d *Decoder) ReadRawBytes(n int) []byte {
+	if d.err != nil {
+		return nil
+	}
+
+	if n < 0 || d.pos+n > len(d.buf) {
+		d.err = io.ErrUnexpectedEOF
+		return nil
+	}
+
+	b := make([]byte, n)
+	copy(b, d.buf[d.pos:d.pos+n])
+	d.pos += n
+	return b
+}
+
+func (d *Decoder) Remaining() int {
+	return len(d.buf) - d.pos
+}
+
 func (d *Decoder) Err() error {
 	return d.err
 }

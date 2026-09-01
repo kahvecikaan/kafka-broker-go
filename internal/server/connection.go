@@ -14,7 +14,7 @@ import (
 // Kafka's socket.request.max.bytes default (100 MiB).
 const maxRequestSize = 100 << 20
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, broker *kafka.Broker) {
 	defer conn.Close()
 
 	for {
@@ -34,7 +34,7 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		out, err := kafka.HandleRequest(msg)
+		out, err := broker.HandleRequest(msg)
 		if err != nil {
 			log.Println("malformed request, closing connection:", err)
 			return
@@ -46,7 +46,7 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
-func Run(addr string) error {
+func Run(addr string, broker *kafka.Broker) error {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
@@ -60,6 +60,6 @@ func Run(addr string) error {
 			continue
 		}
 
-		go handleConnection(conn)
+		go handleConnection(conn, broker)
 	}
 }
