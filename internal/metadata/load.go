@@ -1,6 +1,8 @@
 package metadata
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 
 	"github.com/kahvecikaan/kafka-broker-go/internal/protocol"
@@ -14,7 +16,7 @@ const (
 func Load(path string) (*Store, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			// No metadata log on disk: a valid empty cluster.
 			return &Store{byName: map[string]*Topic{}}, nil
 		}
