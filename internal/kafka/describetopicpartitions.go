@@ -80,7 +80,7 @@ func describeTopic(name string, store *metadata.Store) TopicResponse {
 	return TopicResponse{
 		ErrorCode:  errNone,
 		Name:       t.Name,
-		TopicID:    [16]byte(t.ID),
+		TopicID:    t.ID,
 		IsInternal: false,
 		Partitions: partitions,
 	}
