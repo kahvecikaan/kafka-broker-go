@@ -1,6 +1,9 @@
 package kafka
 
 import (
+	"slices"
+	"strings"
+
 	"github.com/kahvecikaan/kafka-broker-go/internal/metadata"
 	"github.com/kahvecikaan/kafka-broker-go/internal/protocol"
 )
@@ -43,6 +46,10 @@ func HandleDescribeTopicPartitions(d *protocol.Decoder, store *metadata.Store) D
 
 		topics = append(topics, describeTopic(name, store))
 	}
+
+	slices.SortFunc(topics, func(a, b TopicResponse) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 
 	return DescribeTopicPartitionsResponse{
 		ThrottleTimeMs: 0,
