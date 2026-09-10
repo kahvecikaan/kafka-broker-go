@@ -22,6 +22,7 @@ type Store struct {
 	byID   map[UUID]*Topic
 }
 
+// FindTopic looks up a topic by name. DescribeTopicPartitions identifies topics by name.
 func (s *Store) FindTopic(name string) (*Topic, bool) {
 	t, ok := s.byName[name]
 	return t, ok

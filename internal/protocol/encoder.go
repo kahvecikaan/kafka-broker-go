@@ -41,6 +41,8 @@ func (e *Encoder) PutCompactString(s string) {
 	e.buf = append(e.buf, s...)
 }
 
+// PutCompactBytes writes a COMPACT_BYTES/COMPACT_RECORDS value: the length as a
+// uvarint (N+1), then the raw bytes. A nil slice is encoded as null.
 func (e *Encoder) PutCompactBytes(b []byte) {
 	if b == nil {
 		e.PutUvarint(0)
@@ -63,6 +65,7 @@ func (e *Encoder) Bytes() []byte {
 	return e.buf
 }
 
+// Frame prepends the 4-byte big-endian length that starts every Kafka message.
 func Frame(payload []byte) []byte {
 	out := make([]byte, 4+len(payload))
 	binary.BigEndian.PutUint32(out[0:4], uint32(len(payload)))

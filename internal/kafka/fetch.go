@@ -49,6 +49,9 @@ func (t FetchableTopicResponse) Encode(e *protocol.Encoder) {
 	e.PutUvarint(0) // TAG_BUFFER
 }
 
+// HandleFetch parses the Fetch request body and answers each requested topic.
+// The top-level error is always none; per-partition errors carry the detail.
+// The decoder's cursor is already positioned past the request header.
 func HandleFetch(d *protocol.Decoder, store *metadata.Store, logDir string) (FetchResponse, error) {
 	d.ReadInt32() // skip max_wait_ms
 	d.ReadInt32() // skip min_bytes
@@ -76,8 +79,8 @@ func HandleFetch(d *protocol.Decoder, store *metadata.Store, logDir string) (Fet
 }
 
 // fetchTopic reads one requested topic and builds its response. A known topic
-// answers each partition with no error and no records (empty log); an unknown
-// topic answers each with UNKNOWN_TOPIC_ID.
+// returns each partition's records read from its log on disk. An unknown topic
+// returns UNKNOWN_TOPIC_ID for each requested partition.
 func fetchTopic(d *protocol.Decoder, store *metadata.Store, logDir string) (FetchableTopicResponse, error) {
 	var topicID metadata.UUID
 	copy(topicID[:], d.ReadRawBytes(16))
@@ -106,7 +109,7 @@ func fetchTopic(d *protocol.Decoder, store *metadata.Store, logDir string) (Fetc
 			HighWatermark:        0,
 			LastStableOffset:     0,
 			LogStartOffset:       0,
-			PreferredReadReplica: 0,
+			PreferredReadReplica: -1,
 			Records:              records,
 		})
 	}
