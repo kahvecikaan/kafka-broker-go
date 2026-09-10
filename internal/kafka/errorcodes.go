@@ -6,4 +6,5 @@ const (
 	errNone               ErrorCode = 0
 	errUnsupportedVersion ErrorCode = 35
 	errUnknownTopic       ErrorCode = 3
+	errUnknownTopicID     ErrorCode = 100
 )

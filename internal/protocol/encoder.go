@@ -12,6 +12,10 @@ func NewEncoder() *Encoder {
 	return &Encoder{}
 }
 
+func (e *Encoder) PutInt8(v int8) {
+	e.buf = append(e.buf, byte(v))
+}
+
 func (e *Encoder) PutInt16(v int16) {
 	e.buf = binary.BigEndian.AppendUint16(e.buf, uint16(v))
 }
@@ -20,12 +24,12 @@ func (e *Encoder) PutInt32(v int32) {
 	e.buf = binary.BigEndian.AppendUint32(e.buf, uint32(v))
 }
 
-func (e *Encoder) PutUvarint(v uint64) {
-	e.buf = binary.AppendUvarint(e.buf, v)
+func (e *Encoder) PutInt64(v int64) {
+	e.buf = binary.BigEndian.AppendUint64(e.buf, uint64(v))
 }
 
-func (e *Encoder) PutInt8(v int8) {
-	e.buf = append(e.buf, byte(v))
+func (e *Encoder) PutUvarint(v uint64) {
+	e.buf = binary.AppendUvarint(e.buf, v)
 }
 
 func (e *Encoder) PutRawBytes(b []byte) {
