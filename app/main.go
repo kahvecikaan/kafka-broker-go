@@ -8,7 +8,8 @@ import (
 	"github.com/kahvecikaan/kafka-broker-go/internal/server"
 )
 
-const metadataLogPath = "/tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log"
+const logDir = "/tmp/kraft-combined-logs/"
+const metadataLogPath = logDir + "__cluster_metadata-0/00000000000000000000.log"
 
 func main() {
 	store, err := metadata.Load(metadataLogPath)
@@ -16,7 +17,7 @@ func main() {
 		log.Fatal("Failed to load cluster metadata: ", err)
 	}
 
-	broker := kafka.NewBroker(store)
+	broker := kafka.NewBroker(logDir, store)
 
 	if err := server.Run("0.0.0.0:9092", broker); err != nil {
 		log.Fatal("Failed to run the server: ", err)

@@ -41,6 +41,16 @@ func (e *Encoder) PutCompactString(s string) {
 	e.buf = append(e.buf, s...)
 }
 
+func (e *Encoder) PutCompactBytes(b []byte) {
+	if b == nil {
+		e.PutUvarint(0)
+		return
+	}
+
+	e.PutUvarint(uint64(len(b) + 1)) // COMPACT_BYTES length is N+1
+	e.buf = append(e.buf, b...)
+}
+
 func (e *Encoder) PutBool(b bool) {
 	if b {
 		e.PutInt8(1)

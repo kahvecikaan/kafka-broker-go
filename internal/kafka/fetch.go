@@ -3,6 +3,7 @@ package kafka
 import (
 	"github.com/kahvecikaan/kafka-broker-go/internal/metadata"
 	"github.com/kahvecikaan/kafka-broker-go/internal/protocol"
+	"github.com/kahvecikaan/kafka-broker-go/internal/storage"
 )
 
 type FetchResponse struct {
@@ -19,6 +20,7 @@ type FetchPartitionResponse struct {
 	LastStableOffset     int64
 	LogStartOffset       int64
 	PreferredReadReplica int32
+	Records              []byte
 }
 
 type FetchableTopicResponse struct {
@@ -34,9 +36,8 @@ func (p FetchPartitionResponse) Encode(e *protocol.Encoder) {
 	e.PutInt64(p.LogStartOffset)
 	e.PutUvarint(1) // aborted_transactions: empty compact array
 	e.PutInt32(p.PreferredReadReplica)
-	e.PutUvarint(0) // records: COMPACT_RECORDS null (0 = null)
-	e.PutUvarint(0) // TAG_BUFFER
-
+	e.PutCompactBytes(p.Records) // records: COMPACT_RECORDS
+	e.PutUvarint(0)              // TAG_BUFFER
 }
 
 func (t FetchableTopicResponse) Encode(e *protocol.Encoder) {
@@ -48,7 +49,7 @@ func (t FetchableTopicResponse) Encode(e *protocol.Encoder) {
 	e.PutUvarint(0) // TAG_BUFFER
 }
 
-func HandleFetch(d *protocol.Decoder, store *metadata.Store) FetchResponse {
+func HandleFetch(d *protocol.Decoder, store *metadata.Store, logDir string) (FetchResponse, error) {
 	d.ReadInt32() // skip max_wait_ms
 	d.ReadInt32() // skip min_bytes
 	d.ReadInt32() // skip max_bytes
@@ -59,7 +60,11 @@ func HandleFetch(d *protocol.Decoder, store *metadata.Store) FetchResponse {
 	topicCount := int(d.ReadUvarint()) - 1 // topics COMPACT_ARRAY is N+1
 	responses := make([]FetchableTopicResponse, 0, max(topicCount, 0))
 	for i := 0; i < topicCount; i++ {
-		responses = append(responses, fetchTopic(d, store))
+		resp, err := fetchTopic(d, store, logDir)
+		if err != nil {
+			return FetchResponse{}, err
+		}
+		responses = append(responses, resp)
 	}
 
 	return FetchResponse{
@@ -67,17 +72,17 @@ func HandleFetch(d *protocol.Decoder, store *metadata.Store) FetchResponse {
 		ErrorCode:      errNone, // top-level: no error (per-partition errors carry the detail)
 		SessionID:      0,
 		Responses:      responses,
-	}
+	}, nil
 }
 
 // fetchTopic reads one requested topic and builds its response. A known topic
 // answers each partition with no error and no records (empty log); an unknown
 // topic answers each with UNKNOWN_TOPIC_ID.
-func fetchTopic(d *protocol.Decoder, store *metadata.Store) FetchableTopicResponse {
+func fetchTopic(d *protocol.Decoder, store *metadata.Store, logDir string) (FetchableTopicResponse, error) {
 	var topicID metadata.UUID
 	copy(topicID[:], d.ReadRawBytes(16))
 
-	_, known := store.FindTopicByID(topicID)
+	topic, known := store.FindTopicByID(topicID)
 
 	partitionCount := int(d.ReadUvarint()) - 1 // partitions COMPACT_ARRAY is N+1
 	partitions := make([]FetchPartitionResponse, 0, max(partitionCount, 0))
@@ -85,8 +90,14 @@ func fetchTopic(d *protocol.Decoder, store *metadata.Store) FetchableTopicRespon
 		idx := readPartitionIndex(d)
 
 		errorCode := errUnknownTopicID
+		var records []byte
 		if known {
 			errorCode = errNone
+			b, err := storage.ReadPartition(logDir, topic.Name, idx)
+			if err != nil {
+				return FetchableTopicResponse{}, err
+			}
+			records = b
 		}
 
 		partitions = append(partitions, FetchPartitionResponse{
@@ -96,6 +107,7 @@ func fetchTopic(d *protocol.Decoder, store *metadata.Store) FetchableTopicRespon
 			LastStableOffset:     0,
 			LogStartOffset:       0,
 			PreferredReadReplica: 0,
+			Records:              records,
 		})
 	}
 	d.ReadUvarint() // topic-level TAG_BUFFER
@@ -103,7 +115,7 @@ func fetchTopic(d *protocol.Decoder, store *metadata.Store) FetchableTopicRespon
 	return FetchableTopicResponse{
 		TopicID:    topicID,
 		Partitions: partitions,
-	}
+	}, nil
 }
 
 // readPartitionIndex consumes one requested-partition entry and returns its

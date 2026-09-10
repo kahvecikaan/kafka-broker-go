@@ -13,7 +13,11 @@ func (b *Broker) HandleRequest(msg []byte) ([]byte, error) {
 	switch reqHeader.APIKey {
 	case FetchKey:
 		respHeader.EncodeV1(e) // Fetch uses response header v1
-		HandleFetch(d, b.metadata).Encode(e)
+		resp, err := HandleFetch(d, b.metadata, b.logDir)
+		if err != nil {
+			return nil, err
+		}
+		resp.Encode(e)
 	case APIVersionsKey:
 		respHeader.EncodeV0(e) // ApiVersions uses response header v0
 		HandleApiVersions(reqHeader).Encode(e)
