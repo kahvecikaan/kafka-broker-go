@@ -19,9 +19,16 @@ type Partition struct {
 
 type Store struct {
 	byName map[string]*Topic
+	byID   map[UUID]*Topic
 }
 
 func (s *Store) FindTopic(name string) (*Topic, bool) {
 	t, ok := s.byName[name]
+	return t, ok
+}
+
+// FindTopicByID looks up a topic by its UUID. Fetch identifies topics by ID.
+func (s *Store) FindTopicByID(id UUID) (*Topic, bool) {
+	t, ok := s.byID[id]
 	return t, ok
 }

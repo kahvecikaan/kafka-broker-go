@@ -9,7 +9,7 @@ type FetchResponse struct {
 	ThrottleTimeMs int32
 	ErrorCode      ErrorCode
 	SessionID      int32
-	Responses      []FetchableTopicResponse // empty this stage
+	Responses      []FetchableTopicResponse
 }
 
 type FetchPartitionResponse struct {
@@ -48,7 +48,7 @@ func (t FetchableTopicResponse) Encode(e *protocol.Encoder) {
 	e.PutUvarint(0) // TAG_BUFFER
 }
 
-func HandleFetch(d *protocol.Decoder) FetchResponse {
+func HandleFetch(d *protocol.Decoder, store *metadata.Store) FetchResponse {
 	d.ReadInt32() // skip max_wait_ms
 	d.ReadInt32() // skip min_bytes
 	d.ReadInt32() // skip max_bytes
@@ -59,7 +59,7 @@ func HandleFetch(d *protocol.Decoder) FetchResponse {
 	topicCount := int(d.ReadUvarint()) - 1 // topics COMPACT_ARRAY is N+1
 	responses := make([]FetchableTopicResponse, 0, max(topicCount, 0))
 	for i := 0; i < topicCount; i++ {
-		responses = append(responses, fetchTopic(d))
+		responses = append(responses, fetchTopic(d, store))
 	}
 
 	return FetchResponse{
@@ -70,19 +70,32 @@ func HandleFetch(d *protocol.Decoder) FetchResponse {
 	}
 }
 
-// fetchTopic reads one requested topic and, treating it as unknown, returns an
-// entry with UNKNOWN_TOPIC_ID for each requested partition.
-func fetchTopic(d *protocol.Decoder) FetchableTopicResponse {
+// fetchTopic reads one requested topic and builds its response. A known topic
+// answers each partition with no error and no records (empty log); an unknown
+// topic answers each with UNKNOWN_TOPIC_ID.
+func fetchTopic(d *protocol.Decoder, store *metadata.Store) FetchableTopicResponse {
 	var topicID metadata.UUID
 	copy(topicID[:], d.ReadRawBytes(16))
+
+	_, known := store.FindTopicByID(topicID)
 
 	partitionCount := int(d.ReadUvarint()) - 1 // partitions COMPACT_ARRAY is N+1
 	partitions := make([]FetchPartitionResponse, 0, max(partitionCount, 0))
 	for i := 0; i < partitionCount; i++ {
+		idx := readPartitionIndex(d)
+
+		errorCode := errUnknownTopicID
+		if known {
+			errorCode = errNone
+		}
+
 		partitions = append(partitions, FetchPartitionResponse{
-			Index:                readPartitionIndex(d),
-			ErrorCode:            errUnknownTopicID,
-			PreferredReadReplica: -1,
+			Index:                idx,
+			ErrorCode:            errorCode,
+			HighWatermark:        0,
+			LastStableOffset:     0,
+			LogStartOffset:       0,
+			PreferredReadReplica: 0,
 		})
 	}
 	d.ReadUvarint() // topic-level TAG_BUFFER

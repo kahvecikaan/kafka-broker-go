@@ -18,7 +18,7 @@ func Load(path string) (*Store, error) {
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			// No metadata log on disk: a valid empty cluster.
-			return &Store{byName: map[string]*Topic{}}, nil
+			return &Store{byName: map[string]*Topic{}, byID: map[UUID]*Topic{}}, nil
 		}
 		return nil, err
 	}
@@ -137,9 +137,11 @@ func readUUID(d *protocol.Decoder) UUID {
 
 func buildStore(topics map[UUID]*Topic) *Store {
 	byName := make(map[string]*Topic)
+	byID := make(map[UUID]*Topic)
 	for _, t := range topics {
 		byName[t.Name] = t
+		byID[t.ID] = t
 	}
 
-	return &Store{byName: byName}
+	return &Store{byName: byName, byID: byID}
 }
