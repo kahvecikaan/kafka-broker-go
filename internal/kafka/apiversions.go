@@ -49,6 +49,7 @@ func HandleApiVersions(header RequestHeader) ApiVersionsResponse {
 
 func supportedApiKeys() []ApiKeyEntry {
 	return []ApiKeyEntry{
+		{APIKey: ProduceKey, MinVersion: 0, MaxVersion: 11},
 		{APIKey: FetchKey, MinVersion: 0, MaxVersion: 16},
 		{APIKey: APIVersionsKey, MinVersion: 0, MaxVersion: 4},
 		{APIKey: DescribeTopicPartitionsKey, MinVersion: 0, MaxVersion: 0},
