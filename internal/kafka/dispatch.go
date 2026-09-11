@@ -13,7 +13,7 @@ func (b *Broker) HandleRequest(msg []byte) ([]byte, error) {
 	switch reqHeader.APIKey {
 	case ProduceKey:
 		respHeader.EncodeV1(e) // Produce uses response header v1
-		HandleProduce(d).Encode(e)
+		HandleProduce(d, b.metadata).Encode(e)
 	case FetchKey:
 		respHeader.EncodeV1(e) // Fetch uses response header v1
 		resp, err := HandleFetch(d, b.metadata, b.logDir)

@@ -1,6 +1,9 @@
 package kafka
 
-import "github.com/kahvecikaan/kafka-broker-go/internal/protocol"
+import (
+	"github.com/kahvecikaan/kafka-broker-go/internal/metadata"
+	"github.com/kahvecikaan/kafka-broker-go/internal/protocol"
+)
 
 type ProduceRequest struct {
 	TransactionalID string
@@ -101,21 +104,33 @@ func (p ProducePartitionResponse) Encode(e *protocol.Encoder) {
 	e.PutUvarint(0) // TAG_BUFFER
 }
 
-func HandleProduce(d *protocol.Decoder) ProduceResponse {
+func HandleProduce(d *protocol.Decoder, store *metadata.Store) ProduceResponse {
 	var req ProduceRequest
 	req.Decode(d)
 
 	topics := make([]ProduceTopicResponse, 0, len(req.Topics))
 	for _, t := range req.Topics {
 		partitions := make([]ProducePartitionResponse, 0, len(t.Partitions))
+		topic, ok := store.FindTopic(t.Name)
+
 		for _, p := range t.Partitions {
-			partitions = append(partitions, ProducePartitionResponse{
-				Index:           p.Index,
-				ErrorCode:       errUnknownTopic,
-				BaseOffset:      -1,
-				LogAppendTimeMs: -1,
-				LogStartOffset:  -1,
-			})
+			if !ok || !topic.HasPartition(p.Index) {
+				partitions = append(partitions, ProducePartitionResponse{
+					Index:           p.Index,
+					ErrorCode:       errUnknownTopic,
+					BaseOffset:      -1,
+					LogAppendTimeMs: -1,
+					LogStartOffset:  -1,
+				})
+			} else {
+				partitions = append(partitions, ProducePartitionResponse{
+					Index:           p.Index,
+					ErrorCode:       errNone,
+					BaseOffset:      0,
+					LogAppendTimeMs: -1,
+					LogStartOffset:  0,
+				})
+			}
 		}
 
 		topics = append(topics, ProduceTopicResponse{

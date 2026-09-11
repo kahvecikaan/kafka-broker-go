@@ -1,5 +1,7 @@
 package metadata
 
+import "slices"
+
 // UUID is a Kafka identifier: a fixed 16-byte value.
 type UUID [16]byte
 
@@ -32,4 +34,10 @@ func (s *Store) FindTopic(name string) (*Topic, bool) {
 func (s *Store) FindTopicByID(id UUID) (*Topic, bool) {
 	t, ok := s.byID[id]
 	return t, ok
+}
+
+func (t *Topic) HasPartition(id int32) bool {
+	return slices.ContainsFunc(t.Partitions, func(partition Partition) bool {
+		return partition.ID == id
+	})
 }
