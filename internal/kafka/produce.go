@@ -3,6 +3,7 @@ package kafka
 import (
 	"github.com/kahvecikaan/kafka-broker-go/internal/metadata"
 	"github.com/kahvecikaan/kafka-broker-go/internal/protocol"
+	"github.com/kahvecikaan/kafka-broker-go/internal/storage"
 )
 
 type ProduceRequest struct {
@@ -104,7 +105,7 @@ func (p ProducePartitionResponse) Encode(e *protocol.Encoder) {
 	e.PutUvarint(0) // TAG_BUFFER
 }
 
-func HandleProduce(d *protocol.Decoder, store *metadata.Store) ProduceResponse {
+func HandleProduce(d *protocol.Decoder, store *metadata.Store, logDir string) (ProduceResponse, error) {
 	var req ProduceRequest
 	req.Decode(d)
 
@@ -123,6 +124,10 @@ func HandleProduce(d *protocol.Decoder, store *metadata.Store) ProduceResponse {
 					LogStartOffset:  -1,
 				})
 			} else {
+				if err := storage.WritePartition(logDir, t.Name, p.Index, p.Records); err != nil {
+					return ProduceResponse{}, err
+				}
+
 				partitions = append(partitions, ProducePartitionResponse{
 					Index:           p.Index,
 					ErrorCode:       errNone,
@@ -142,5 +147,5 @@ func HandleProduce(d *protocol.Decoder, store *metadata.Store) ProduceResponse {
 	return ProduceResponse{
 		Topics:         topics,
 		ThrottleTimeMs: 0,
-	}
+	}, nil
 }
