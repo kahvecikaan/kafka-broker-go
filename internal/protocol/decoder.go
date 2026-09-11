@@ -158,6 +158,15 @@ func (d *Decoder) ReadRawBytes(n int) []byte {
 	return b
 }
 
+func (d *Decoder) ReadCompactBytes() []byte {
+	l := d.ReadUvarint()
+	if d.err != nil || l == 0 {
+		return nil // null (0), or a failed length read: no bytes
+	}
+
+	return d.ReadRawBytes(int(l - 1)) // COMPACT_BYTES: length N+1, then N bytes
+}
+
 func (d *Decoder) Remaining() int {
 	return len(d.buf) - d.pos
 }
